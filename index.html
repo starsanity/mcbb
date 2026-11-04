@@ -20,6 +20,9 @@
             background-color: #0b0f19;
             color: #f1f5f9;
         }
+        [v-cloak] {
+            display: none !important;
+        }
         .font-mono-num {
             font-family: 'JetBrains Mono', monospace;
         }
@@ -51,38 +54,36 @@
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-orange-500 selection:text-white">
 
-<div id="app" class="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto min-h-screen flex flex-col bg-slate-900/70 border-x border-slate-800/80 shadow-2xl">
+<div id="app" v-cloak class="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto min-h-screen flex flex-col bg-slate-900/70 border-x border-slate-800/80 shadow-2xl">
     
     <!-- Top Header & Branding -->
-    <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3.5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white font-extrabold text-lg">
+    <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 py-3">
+        <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white font-extrabold text-base sm:text-lg shrink-0">
                     🏀
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-extrabold tracking-tight text-white">QuantEdge CBB Analyzer</h1>
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white leading-tight">QuantEdge CBB</h1>
+                        <span class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30">
                             NCAAM
                         </span>
                     </div>
-                    <p class="text-xs text-slate-400">Multi-Tier Consensus &amp; Edge Engine (13 Models)</p>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">Multi-Tier Consensus &amp; Edge Engine (13 Models)</p>
                 </div>
             </div>
 
-            <!-- Data Source Actions -->
-            <div class="flex items-center gap-2">
+            <!-- Live Game Count Indicator Pill (Sync & Auto 30s buttons removed) -->
+            <div class="flex items-center gap-1.5">
                 <button 
-                    @click="fetchSheetData" 
-                    :disabled="loading"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer disabled:opacity-50"
-                    title="Sync live data from Google Sheet"
+                    v-if="liveGamesCount > 0"
+                    @click="quickFilter = quickFilter === 'live' ? 'all' : 'live'"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse cursor-pointer shadow-sm"
+                    title="Filter to games currently in progress"
                 >
-                    <svg :class="{'animate-spin': loading}" class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                    <span>{{ loading ? 'Syncing...' : 'Sync Sheet' }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    <span>{{ liveGamesCount }} LIVE</span>
                 </button>
             </div>
         </div>
@@ -106,35 +107,43 @@
                 <span>{{ statusMessage }}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <button v-if="dataSource !== 'fallback'" @click="loadFallbackData" class="underline hover:text-white font-semibold">
-                    Load Sample Slate
-                </button>
                 <button @click="statusMessage = ''" class="text-slate-400 hover:text-white px-1">✕</button>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="grid grid-cols-2 gap-2 mt-3 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+        <div class="grid grid-cols-3 gap-1.5 mt-2.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button 
                 @click="activeTab = 'matchups'"
-                class="py-2 px-3 rounded-lg text-xs font-bold tracking-wide transition flex items-center justify-center gap-2"
+                class="py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold tracking-tight transition flex items-center justify-center gap-1 min-w-0"
                 :class="activeTab === 'matchups' ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25' : 'text-slate-400 hover:text-slate-200'"
             >
-                <span>MATCHUPS</span>
-                <span class="px-1.5 py-0.5 text-[10px] rounded-full font-mono-num"
+                <span class="truncate">GAMES</span>
+                <span class="px-1.5 py-0.2 text-[9px] sm:text-[10px] rounded-full font-mono-num shrink-0"
                       :class="activeTab === 'matchups' ? 'bg-orange-800/80 text-orange-100' : 'bg-slate-800 text-slate-400'">
                     {{ filteredGames.length }}
                 </span>
             </button>
             <button 
                 @click="activeTab = 'summary'"
-                class="py-2 px-3 rounded-lg text-xs font-bold tracking-wide transition flex items-center justify-center gap-2"
+                class="py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold tracking-tight transition flex items-center justify-center gap-1 min-w-0"
                 :class="activeTab === 'summary' ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25' : 'text-slate-400 hover:text-slate-200'"
             >
-                <span>SUMMARY CARD</span>
-                <span class="px-1.5 py-0.5 text-[10px] rounded-full font-mono-num"
+                <span class="truncate">SUMMARY</span>
+                <span class="px-1.5 py-0.2 text-[9px] sm:text-[10px] rounded-full font-mono-num shrink-0"
                       :class="activeTab === 'summary' ? 'bg-orange-800/80 text-orange-100' : 'bg-slate-800 text-slate-400'">
                     {{ actionableGames.length }}
+                </span>
+            </button>
+            <button 
+                @click="activeTab = 'record'"
+                class="py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold tracking-tight transition flex items-center justify-center gap-1 min-w-0"
+                :class="activeTab === 'record' ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25' : 'text-slate-400 hover:text-slate-200'"
+            >
+                <span class="truncate">RECORD</span>
+                <span class="px-1.5 py-0.2 text-[9px] sm:text-[10px] rounded-full font-mono-num shrink-0"
+                      :class="activeTab === 'record' ? 'bg-orange-800/80 text-orange-100' : 'bg-slate-800 text-slate-400'">
+                    {{ strongRecord.w }}-{{ strongRecord.l }}-{{ strongRecord.p }}
                 </span>
             </button>
         </div>
@@ -197,8 +206,8 @@
                     <button @click="searchQuery = ''; quickFilter = 'all'" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200">
                         Reset Filters
                     </button>
-                    <button @click="loadFallbackData" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white">
-                        Load Embedded CBB Slate
+                    <button @click="fetchSheetData" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white">
+                        Retry Sync Sheet
                     </button>
                 </div>
             </div>
@@ -335,6 +344,110 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Automated Live Score & Grade Display (ESPN Feed) -->
+                                <div class="pt-2.5 border-t border-white/10 text-xs">
+                                    <!-- 1. LIVE IN PROGRESS STATE -->
+                                    <div v-if="getGameLiveStatus(game)?.isLive" class="rounded-xl bg-slate-950/90 border border-emerald-700/60 p-3 space-y-2.5 shadow-inner">
+                                        <!-- Live Top Header: Clock + Scoreboard -->
+                                        <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase tracking-wider animate-pulse font-mono-num">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                                    LIVE
+                                                </span>
+                                                <span class="text-[11px] font-bold text-slate-300 font-mono-num">
+                                                    {{ getGameLiveStatus(game)?.detail || 'In Progress' }}
+                                                </span>
+                                            </div>
+                                            <!-- Live Score -->
+                                            <div class="text-sm font-black text-white font-mono-num flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                                                <span :class="{'text-emerald-400': getDisplayScore(game).away > getDisplayScore(game).home}">
+                                                    {{ game.road }} {{ getDisplayScore(game).away }}
+                                                </span>
+                                                <span class="text-slate-500">-</span>
+                                                <span :class="{'text-emerald-400': getDisplayScore(game).home > getDisplayScore(game).away}">
+                                                    {{ getDisplayScore(game).home }} {{ game.home }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Live Recommendation Win Probability Meter -->
+                                        <div v-if="calculateLiveCoverProb(game)" class="space-y-1.5">
+                                            <div class="flex items-center justify-between gap-2 text-xs">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Target Win Prob:</span>
+                                                    <span class="text-sm font-black font-mono-num" :class="getWinProbTextColor(calculateLiveCoverProb(game).pct)">
+                                                        {{ calculateLiveCoverProb(game).label }}
+                                                    </span>
+                                                </div>
+                                                <!-- Current Spread Cover Cushion -->
+                                                <div class="font-mono-num text-[11px] font-bold px-2 py-0.5 rounded-md" :class="calculateLiveCoverProb(game).coverDiff >= 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'">
+                                                    {{ calculateLiveCoverProb(game).coverDiff >= 0 ? 'Covering by +' + calculateLiveCoverProb(game).coverDiff : 'Trailing cover by ' + calculateLiveCoverProb(game).coverDiff }} pts
+                                                </div>
+                                            </div>
+
+                                            <!-- Visual Animated Progress Bar -->
+                                            <div class="w-full bg-slate-900 rounded-full h-2.5 border border-slate-800 overflow-hidden relative">
+                                                <div 
+                                                    class="h-full rounded-full transition-all duration-700 ease-out"
+                                                    :style="{ width: calculateLiveCoverProb(game).pct + '%' }"
+                                                    :class="getWinProbBarColor(calculateLiveCoverProb(game).pct)"
+                                                ></div>
+                                                <!-- 50% Marker Line -->
+                                                <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-700/80 -translate-x-1/2"></div>
+                                            </div>
+                                            <div class="flex justify-between text-[9px] text-slate-500 font-mono-num px-0.5">
+                                                <span>0%</span>
+                                                <span>50% Spread Line</span>
+                                                <span>100%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. COMPLETED FINAL STATE (GRADED OR PASS) -->
+                                    <div v-else-if="getGameLiveStatus(game)?.isCompleted || getGameGrade(game).grade" class="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono-num">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                {{ getGameLiveStatus(game)?.detail || 'Final' }}
+                                            </span>
+                                            <span class="text-xs font-bold text-slate-200">
+                                                {{ game.road }} {{ getDisplayScore(game).away }} - {{ getDisplayScore(game).home }} {{ game.home }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Graded Outcome Badge for Strong Bets -->
+                                        <div v-if="game.result?.finalAction === 'STRONG BET' && getGameGrade(game).grade" class="flex items-center gap-1.5">
+                                            <span 
+                                                class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border"
+                                                :class="{
+                                                    'bg-emerald-500/20 text-emerald-300 border-emerald-500/40': getGameGrade(game).grade === 'W',
+                                                    'bg-rose-500/20 text-rose-300 border-rose-500/40': getGameGrade(game).grade === 'L',
+                                                    'bg-amber-500/20 text-amber-300 border-amber-500/40': getGameGrade(game).grade === 'P'
+                                                }"
+                                            >
+                                                {{ getGameGrade(game).grade === 'W' ? 'COVER (WIN)' : (getGameGrade(game).grade === 'L' ? 'LOSS' : 'PUSH') }}
+                                            </span>
+                                        </div>
+                                        <div v-else-if="game.result?.finalAction === 'STRONG BET'" class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                                            Final (Grading...)
+                                        </div>
+                                        <div v-else class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                            Final ({{ game.result?.finalAction?.includes('LEAN') ? 'Lean / Not Graded' : 'Pass' }})
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. PREGAME / SCHEDULED OR PENDING FEED STATE -->
+                                    <div v-else class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-950/40 border border-slate-800 text-slate-400 font-mono-num">
+                                        <span class="text-slate-500">ESPN Scoreboard:</span>
+                                        <span v-if="getGameLiveStatus(game)?.startTime" class="text-slate-300">
+                                            Tip-off: {{ getGameLiveStatus(game).startTime }}
+                                        </span>
+                                        <span v-else class="text-slate-500 italic">
+                                            Awaiting Live/Final Score
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div v-else class="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center text-xs text-slate-400 font-semibold">
@@ -414,15 +527,15 @@
                     <div class="text-xl font-extrabold text-white font-mono-num mt-0.5">{{ analyzedGames && analyzedGames.length ? analyzedGames.length : 0 }}</div>
                 </div>
                 <div class="bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-3">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Strong Bets (T1&amp;T2)</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Strong Bets (Record)</span>
                     <div class="text-xl font-extrabold text-emerald-300 font-mono-num mt-0.5">{{ strongBetsCount }}</div>
                 </div>
                 <div class="bg-sky-950/40 border border-sky-800/60 rounded-xl p-3">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400">Tier 1 Plays</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400">Tier 1 Leans</span>
                     <div class="text-xl font-extrabold text-sky-300 font-mono-num mt-0.5">{{ tier1PlaysCount }}</div>
                 </div>
                 <div class="bg-amber-950/40 border border-amber-800/60 rounded-xl p-3">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">T2 / T1 Split Plays</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Tier 2 Leans</span>
                     <div class="text-xl font-extrabold text-amber-300 font-mono-num mt-0.5">{{ tier2PlaysCount }}</div>
                 </div>
             </div>
@@ -468,6 +581,7 @@
                                 <th class="py-3 px-3 text-center">T1 Edge</th>
                                 <th class="py-3 px-3 text-center">T2 Edge</th>
                                 <th class="py-3 px-3 text-center">T3 Check</th>
+                                <th class="py-3 px-3 text-center">Result</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800/70 text-xs">
@@ -529,6 +643,189 @@
                                         {{ game.result.t3.status }} ({{ game.result.t3.dir }})
                                     </span>
                                 </td>
+
+                                <!-- Auto-Graded Result Column -->
+                                <td class="py-3 px-3 text-center font-mono-num">
+                                    <!-- Strong Bet Final Graded Result -->
+                                    <span v-if="game.result?.finalAction === 'STRONG BET' && getGameGrade(game).grade" 
+                                        class="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border"
+                                        :class="{
+                                            'bg-emerald-500/20 text-emerald-300 border-emerald-500/40': getGameGrade(game).grade === 'W',
+                                            'bg-rose-500/20 text-rose-300 border-rose-500/40': getGameGrade(game).grade === 'L',
+                                            'bg-amber-500/20 text-amber-300 border-amber-500/40': getGameGrade(game).grade === 'P'
+                                        }"
+                                    >
+                                        {{ getGameGrade(game).grade === 'W' ? 'WIN' : (getGameGrade(game).grade === 'L' ? 'LOSS' : 'PUSH') }}
+                                    </span>
+
+                                    <!-- Live Score & Live Win % -->
+                                    <div v-else-if="getGameLiveStatus(game)?.isLive" class="space-y-1">
+                                        <div class="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold">
+                                            LIVE: {{ getDisplayScore(game).away }}-{{ getDisplayScore(game).home }}
+                                        </div>
+                                        <div v-if="calculateLiveCoverProb(game)" class="text-[10px] font-black px-1.5 py-0.5 rounded border" :class="calculateLiveCoverProb(game).pct >= 50 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'">
+                                            🎯 {{ calculateLiveCoverProb(game).label }}
+                                        </div>
+                                    </div>
+                                    <span v-else-if="getGameLiveStatus(game)?.isCompleted" class="text-slate-400 font-bold text-[10px]">
+                                        FINAL: {{ getDisplayScore(game).away }}-{{ getDisplayScore(game).home }}
+                                    </span>
+                                    <span v-else class="text-slate-600 font-semibold">—</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== RECORD TRACKER TAB ==================== -->
+        <div v-if="activeTab === 'record'" class="space-y-4">
+            
+            <!-- Record Hero Cards: Strong Bets Record & Strong Bets Win Rate Only -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+                    <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Strong Bets Record</span>
+                    <div class="text-2xl sm:text-3xl font-black text-white font-mono-num mt-1">
+                        {{ strongRecord.w }}-{{ strongRecord.l }}-{{ strongRecord.p }}
+                    </div>
+                    <div class="text-[11px] text-slate-400 font-mono-num mt-1 flex justify-between">
+                        <span>{{ strongRecord.total }} Graded</span>
+                        <span class="text-slate-300 font-semibold">T1 &amp; T2 Consensus</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+                    <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">Strong Bets Win Rate</span>
+                    <div class="text-2xl sm:text-3xl font-black text-emerald-300 font-mono-num mt-1">
+                        {{ strongRecord.winPct }}%
+                    </div>
+                    <div class="text-[11px] text-slate-400 font-mono-num mt-1 flex justify-between">
+                        <span>{{ strongRecord.w }} Won / {{ strongRecord.w + strongRecord.l }} Decided</span>
+                        <span v-if="strongRecord.p > 0" class="text-amber-400 font-semibold">{{ strongRecord.p }} Push</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Sync Status Bar (No Manual Sync Button Required) -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                <div class="flex items-center gap-2.5">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">
+                            Automatic Background Live Score Sync Active (30s)
+                        </div>
+                        <div class="text-[11px] text-slate-400">
+                            Pulling directly from ESPN NCAAM scoreboard. Strong bets are auto-graded upon game completion.
+                        </div>
+                    </div>
+                </div>
+                <div v-if="lastScoreSyncTime" class="text-[10px] text-slate-400 font-mono-num bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800">
+                    Last update: {{ lastScoreSyncTime }}
+                </div>
+            </div>
+
+            <!-- Record Actions Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 text-xs">
+                    <span class="text-slate-400 font-semibold">Filter Graded:</span>
+                    <button 
+                        v-for="rf in recordFilterOptions" 
+                        :key="rf.id"
+                        @click="recordFilter = rf.id"
+                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                        :class="recordFilter === rf.id ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40' : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'"
+                    >
+                        {{ rf.label }}
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button 
+                        @click="clearAllGrades"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition cursor-pointer"
+                        title="Clear all saved Win/Loss/Push results"
+                    >
+                        Reset All Grades
+                    </button>
+                </div>
+            </div>
+
+            <!-- Graded Games Table -->
+            <div v-if="filteredGradedGames.length === 0" class="bg-slate-900/60 border border-slate-800 rounded-xl p-8 text-center space-y-3">
+                <div class="text-3xl">🏀</div>
+                <div class="text-sm font-semibold text-slate-300">No completed Strong Bet results yet.</div>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto">
+                    The Win-Lost-Push record tracks completed matches that qualify as Strong Bets (Tier 1 &amp; Tier 2 consensus). As games conclude, they will automatically appear here.
+                </p>
+            </div>
+
+            <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950/90 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                <th class="py-3 px-3.5">Matchup</th>
+                                <th class="py-3 px-3">Recommended Bet</th>
+                                <th class="py-3 px-3 text-center">Final Score</th>
+                                <th class="py-3 px-3 text-center">Outcome</th>
+                                <th class="py-3 px-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/70 text-xs">
+                            <tr 
+                                v-for="game in filteredGradedGames" 
+                                :key="'rec-' + game.id"
+                                class="hover:bg-slate-800/40 transition"
+                            >
+                                <td class="py-3 px-3.5">
+                                    <div class="font-bold text-slate-100 flex items-center gap-1.5 flex-wrap">
+                                        <span>{{ game.road }}</span>
+                                        <span class="text-[10px] text-slate-400">{{ game.neutral == 1 ? 'vs.' : '@' }}</span>
+                                        <span class="text-orange-400">{{ game.home }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-emerald-400 font-semibold">
+                                        STRONG BET
+                                    </div>
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    <span class="inline-flex items-center gap-1 font-extrabold text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-700 font-mono-num">
+                                        {{ game.result.targetTeam }} ({{ formatBetSpread(game.liveLine, game.result.finalDir) }})
+                                    </span>
+                                </td>
+
+                                <td class="py-3 px-3 text-center font-mono-num">
+                                    <span class="font-bold text-slate-200">
+                                        {{ getGameGrade(game).awayScore }} - {{ getGameGrade(game).homeScore }}
+                                    </span>
+                                </td>
+
+                                <td class="py-3 px-3 text-center font-mono-num">
+                                    <span 
+                                        class="inline-block px-2.5 py-0.5 rounded text-xs font-black uppercase"
+                                        :class="{
+                                            'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40': getGameGrade(game).grade === 'W',
+                                            'bg-rose-500/20 text-rose-300 border border-rose-500/40': getGameGrade(game).grade === 'L',
+                                            'bg-amber-500/20 text-amber-300 border border-amber-500/40': getGameGrade(game).grade === 'P'
+                                        }"
+                                    >
+                                        {{ getGameGrade(game).grade === 'W' ? 'WIN' : (getGameGrade(game).grade === 'L' ? 'LOSS' : 'PUSH') }}
+                                    </span>
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <button 
+                                        @click="clearGameGrade(game)"
+                                        class="text-xs text-slate-500 hover:text-rose-400 transition cursor-pointer px-1.5 py-0.5"
+                                        title="Remove grade"
+                                    >
+                                        ✕
+                                    </button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -559,67 +856,40 @@
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted } = Vue;
-
-// Embedded CBB Spreads fallback dataset (36-game snapshot matching the Men's College Basketball Google Sheet)
-const FALLBACK_CBB_CSV = `CBB Prediction Tracker - Men's College Basketball Spreads,,,,,,,,,,,,,,,,,,,,,
-Updated Daily - NCAAM Quantitative Consensus Sheet,,,,,,,,,,,,,,,,,,,,,
-Positive Line = Home Favored | Negative Line = Road Favored,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,
-lineopen,line,road,home,neutral,linemoore,linefox,linedunkel,lineteamrnks,linedok,linepugh,line7ot,linepir,linemassey,lineespn,linetalis,linedd,linedonc,lineavg,std,line_avgdiff,lineca
-4.5,5.5,Merrimack,Appalachian St.,1,7.8,6.5,8.0,7.6,7.4,7.2,6.0,7.7,7.5,7.3,7.1,6.8,7.9,7.38,0.52,1.88,7.6
--1.5,-2.5,UCLA,Arizona,1,-5.2,-4.0,-5.5,-4.8,-5.1,-4.9,-4.5,-5.0,-4.7,-4.6,-4.8,-4.2,-5.0,-4.81,0.41,-2.31,-4.9
-8.5,9.5,East Tennessee St.,Arizona St.,0,12.1,10.5,12.5,11.8,11.6,11.4,10.0,12.0,11.5,11.3,11.2,11.0,11.9,11.42,0.61,1.92,11.8
-2.5,3.0,Toledo,Arkansas St.,0,5.4,4.5,5.5,5.2,4.9,5.0,4.0,5.3,4.8,4.7,4.9,4.6,5.1,4.95,0.39,1.95,5.2
-3.5,4.5,Ohio St.,BYU,1,7.1,6.0,7.5,6.8,6.6,6.5,5.5,6.9,6.4,6.3,6.4,6.2,7.0,6.55,0.48,2.05,6.8
-24.5,25.5,Northwestern St.,Baylor,0,28.5,27.0,29.0,28.1,27.8,27.5,26.5,28.3,27.6,27.4,27.2,27.0,28.2,27.70,0.66,2.20,28.0
-11.0,11.5,Southern Indiana,Belmont,0,14.0,12.5,14.5,13.8,13.4,13.2,12.0,13.9,13.3,13.1,13.0,12.8,13.7,13.32,0.62,1.82,13.6
--3.0,-3.5,Northeastern,Boston,0,-1.1,-2.0,-1.0,-1.4,-1.6,-1.5,-2.5,-1.3,-1.7,-1.8,-1.4,-1.5,-1.2,-1.54,0.38,1.96,-1.3
-9.0,9.5,New Hampshire,Brown,0,7.1,8.0,7.0,7.3,7.5,7.4,8.5,7.2,7.6,7.7,7.5,7.6,7.1,7.50,0.41,-2.00,7.3
-4.0,4.5,Siena,Bryant,0,6.8,5.5,7.0,6.6,6.3,6.2,5.0,6.7,6.2,6.1,6.0,5.9,6.5,6.22,0.51,1.72,6.6
-16.5,17.5,Lafayette,Butler,0,20.2,19.0,20.5,19.8,19.5,19.4,18.5,20.0,19.3,19.2,19.1,19.0,19.9,19.49,0.52,1.99,19.7
--4.5,-5.0,Oral Roberts,Central Arkansas,0,-2.4,-3.5,-2.0,-2.8,-3.1,-3.0,-4.0,-2.6,-3.2,-3.3,-2.9,-3.0,-2.5,-2.95,0.51,2.05,-2.7
-10.5,11.0,Florida Gulf Coast,Central Florida,0,13.6,12.0,14.0,13.4,13.0,12.9,11.5,13.5,12.8,12.7,12.6,12.5,13.3,12.91,0.63,1.91,13.4
-18.0,18.5,American,Cincinnati,0,21.2,19.5,21.5,20.9,20.4,20.2,19.0,21.0,20.3,20.1,20.0,19.8,20.8,20.36,0.67,1.86,20.7
-19.5,20.5,Stetson,Clemson,0,23.1,21.5,23.5,22.8,22.4,22.2,21.0,23.0,22.3,22.1,22.0,21.8,22.7,22.34,0.66,1.84,22.6
-1.5,2.0,Eastern Michigan,Coastal Carolina,0,4.3,3.0,4.5,4.1,3.8,3.7,2.5,4.2,3.7,3.6,3.5,3.4,4.0,3.72,0.51,1.72,4.1
-13.5,14.0,Abilene Christian,Colorado,0,16.8,15.0,17.0,16.4,16.0,15.8,14.5,16.6,15.9,15.7,15.6,15.5,16.3,15.93,0.67,1.93,16.2
-9.5,10.0,Montana St.,Colorado St.,0,12.6,11.0,13.0,12.3,11.9,11.8,10.5,12.5,11.8,11.7,11.6,11.4,12.2,11.87,0.65,1.87,12.1
-2.0,2.5,Elon,Columbia,0,4.9,3.5,5.0,4.7,4.4,4.3,3.0,4.8,4.3,4.2,4.1,4.0,4.6,4.29,0.54,1.79,4.6
-26.0,27.0,Gardner Webb,Connecticut,0,30.2,28.5,30.5,29.8,29.3,29.1,28.0,30.0,29.2,29.0,28.9,28.7,29.7,29.30,0.68,2.30,29.6
-6.5,7.0,Pepperdine,Cornell,0,9.5,8.0,9.8,9.2,8.9,8.8,7.5,9.4,8.8,8.7,8.6,8.4,9.1,8.82,0.59,1.82,9.1
-21.5,22.5,Mo Kansas City,Creighton,0,25.4,24.0,25.8,25.0,24.6,24.4,23.5,25.2,24.5,24.3,24.2,24.0,24.9,24.60,0.60,2.10,24.8
-20.0,21.0,NJIT,Dayton,0,23.8,22.5,24.0,23.4,23.0,22.8,22.0,23.6,22.9,22.7,22.6,22.5,23.3,23.01,0.55,2.01,23.2
-15.0,15.5,West Georgia,DePaul,0,13.1,14.0,12.8,13.4,13.7,13.8,14.5,13.2,13.8,13.9,13.7,13.6,13.3,13.60,0.42,-1.90,13.5
-28.5,29.5,Army,Duke,0,32.8,31.0,33.0,32.4,31.9,31.7,30.5,32.6,31.8,31.6,31.5,31.3,32.3,31.88,0.68,2.38,32.1
-12.0,12.5,South Carolina Upstate,East Carolina,0,15.1,13.5,15.5,14.8,14.4,14.2,13.0,15.0,14.3,14.1,14.0,13.9,14.7,14.35,0.65,1.85,14.6
-3.0,3.5,Miami-Florida,Florida,1,6.1,4.5,6.5,5.8,5.4,5.3,4.0,6.0,5.3,5.2,5.1,5.0,5.7,5.38,0.64,1.88,5.6
-11.5,12.0,LIU Brooklyn,Florida Atlantic,0,14.8,13.0,15.0,14.4,14.0,13.8,12.5,14.6,13.9,13.7,13.6,13.5,14.3,13.93,0.67,1.93,14.2
-1.0,1.5,Purdue,Gonzaga,1,4.1,2.5,4.5,3.8,3.4,3.3,2.0,4.0,3.3,3.2,3.1,3.0,3.7,3.38,0.64,1.88,3.6
-4.5,5.0,Memphis,Iowa St.,1,7.6,6.0,8.0,7.3,6.9,6.8,5.5,7.5,6.8,6.7,6.6,6.5,7.2,6.88,0.64,1.88,7.1
-23.5,24.5,Fordham,Kansas,0,27.4,26.0,27.8,27.0,26.6,26.4,25.5,27.2,26.5,26.3,26.2,26.0,26.9,26.60,0.60,2.10,26.8
-9.0,9.5,Chattanooga,Louisville,0,12.1,10.5,12.5,11.8,11.4,11.3,10.0,12.0,11.3,11.2,11.1,11.0,11.7,11.38,0.64,1.88,11.6
-22.0,23.0,Mercyhurst,Marquette,0,26.1,24.5,26.5,25.8,25.3,25.1,24.0,26.0,25.2,25.0,24.9,24.7,25.7,25.29,0.68,2.29,25.5
-14.5,15.0,Oakland,Michigan,0,17.8,16.0,18.0,17.4,17.0,16.8,15.5,17.6,16.9,16.7,16.6,16.5,17.3,16.93,0.67,1.93,17.2
-17.5,18.0,Quinnipiac,Michigan St.,0,20.8,19.0,21.0,20.4,20.0,19.8,18.5,20.6,19.9,19.7,19.6,19.5,20.3,19.93,0.67,1.93,20.2
-21.0,22.0,Western Carolina,North Carolina,0,25.1,23.5,25.5,24.8,24.3,24.1,23.0,25.0,24.2,24.0,23.9,23.7,24.7,24.29,0.68,2.29,24.5`;
+const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
 createApp({
     setup() {
         const sheetId = '1s2MSdWMD6v1ljtZKHV9yzJqRla5F-Pr9rnlghmeq2g0';
         const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit?usp=sharing`;
-        const csvEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
 
         const games = ref([]);
         const loading = ref(false);
+        const isPullingScores = ref(false);
+        const autoRefresh = ref(true);
+        let autoRefreshTimer = null;
+        const lastScoreSyncTime = ref('');
+        const liveGameStatusMap = ref({});
         const activeTab = ref('matchups');
         const searchQuery = ref('');
         const quickFilter = ref('all');
+        const recordFilter = ref('all');
         const showOnlyActionable = ref(true);
         const statusMessage = ref('');
         const statusType = ref('info');
         const dataSource = ref('sheet');
         const copyButtonText = ref('Copy Summary');
+        const sheetDetectedDate = ref(null);
+
+        // Persistent Win/Loss/Push grades stored in localStorage
+        const grades = ref({});
+
+        const recordFilterOptions = [
+            { id: 'all', label: 'All Graded' },
+            { id: 'W', label: 'Wins' },
+            { id: 'L', label: 'Losses' },
+            { id: 'P', label: 'Pushes' }
+        ];
 
         // Exact User-Requested CBB Model Tiers
         const modelTiers = {
@@ -658,11 +928,130 @@ createApp({
 
         const filterOptions = [
             { id: 'all', label: 'All Matchups' },
+            { id: 'live', label: '🔴 Live Now' },
             { id: 'actionable', label: 'Actionable Signals' },
             { id: 'strong', label: 'Strong Bets (T1 & T2)' },
-            { id: 't1', label: 'Tier 1 Plays' },
+            { id: 't1', label: 'Tier 1 Leans' },
             { id: 'neutral', label: 'Neutral Courts' }
         ];
+
+        // Standard Normal Cumulative Distribution Function
+        const normalCDF = (z) => {
+            if (z < -7) return 0;
+            if (z > 7) return 1;
+            const t = 1.0 / (1.0 + 0.2316419 * Math.abs(z));
+            const d = 0.3989422804014327 * Math.exp(-z * z / 2.0);
+            const p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+            return z > 0 ? 1.0 - p : p;
+        };
+
+        // Live Cover Win Probability Engine
+        const calculateLiveCoverProb = (game) => {
+            if (!game.result || game.result.finalAction === 'PASS' || game.result.finalAction === 'OFF') {
+                return null;
+            }
+            const line = game.liveLine;
+            if (line === null) return null;
+
+            const liveStatus = getGameLiveStatus(game);
+            const grade = getGameGrade(game);
+
+            // If game is completed and graded
+            if (grade && grade.grade) {
+                if (grade.grade === 'W') return { pct: 100, label: '100%', status: 'FINAL_WIN', coverDiff: 0 };
+                if (grade.grade === 'L') return { pct: 0, label: '0%', status: 'FINAL_LOSS', coverDiff: 0 };
+                if (grade.grade === 'P') return { pct: 50, label: 'Push', status: 'FINAL_PUSH', coverDiff: 0 };
+            }
+
+            if (!liveStatus || liveStatus.awayScore === null || liveStatus.homeScore === null) {
+                return null;
+            }
+
+            const awayScore = liveStatus.awayScore;
+            const homeScore = liveStatus.homeScore;
+            const currentMargin = homeScore - awayScore; // Home margin
+
+            // If completed according to ESPN status
+            if (liveStatus.isCompleted) {
+                let win = false, push = false;
+                if (game.result.finalDir === 'Home') {
+                    if (currentMargin > line) win = true;
+                    else if (currentMargin === line) push = true;
+                } else if (game.result.finalDir === 'Away') {
+                    if (currentMargin < line) win = true;
+                    else if (currentMargin === line) push = true;
+                }
+                if (win) return { pct: 100, label: '100%', status: 'FINAL_WIN', coverDiff: currentMargin - line };
+                if (push) return { pct: 50, label: '50% (Push)', status: 'FINAL_PUSH', coverDiff: 0 };
+                return { pct: 0, label: '0%', status: 'FINAL_LOSS', coverDiff: currentMargin - line };
+            }
+
+            // Game is LIVE: compute remaining regulation time (40 min = 2400 seconds)
+            let secRemInPeriod = 600;
+            if (typeof liveStatus.clock === 'number' && !isNaN(liveStatus.clock)) {
+                secRemInPeriod = liveStatus.clock;
+            } else if (liveStatus.displayClock && liveStatus.displayClock.includes(':')) {
+                const parts = liveStatus.displayClock.split(':');
+                secRemInPeriod = parseInt(parts[0], 10) * 60 + (parseFloat(parts[1]) || 0);
+            }
+
+            let totalSecRem = 1200;
+            const detailLower = (liveStatus.detail || '').toLowerCase();
+            const isHalftime = detailLower.includes('half') && !detailLower.includes('1st') && !detailLower.includes('2nd');
+
+            if (isHalftime) {
+                totalSecRem = 1200;
+            } else if (liveStatus.period === 1) {
+                totalSecRem = 1200 + Math.max(0, Math.min(1200, secRemInPeriod));
+            } else if (liveStatus.period === 2) {
+                totalSecRem = Math.max(10, Math.min(1200, secRemInPeriod));
+            } else {
+                totalSecRem = Math.max(10, Math.min(300, secRemInPeriod));
+            }
+
+            const fElapsed = Math.max(0.01, Math.min(0.999, (2400 - totalSecRem) / 2400));
+            const fRem = Math.max(0.001, totalSecRem / 2400);
+
+            // Spread expectation accumulated so far
+            const expectedElapsedMargin = fElapsed * line;
+
+            // College basketball margin volatility
+            const sigmaRem = Math.max(1.2, 10.5 * Math.sqrt(fRem));
+
+            let coverDiff = 0;
+            let z = 0;
+            if (game.result.finalDir === 'Home') {
+                coverDiff = currentMargin - expectedElapsedMargin;
+                z = coverDiff / sigmaRem;
+            } else {
+                coverDiff = -(currentMargin - expectedElapsedMargin);
+                z = coverDiff / sigmaRem;
+            }
+
+            let prob = normalCDF(z) * 100;
+            prob = Math.max(0.5, Math.min(99.5, prob));
+
+            return {
+                pct: Math.round(prob * 10) / 10,
+                label: `${(Math.round(prob * 10) / 10).toFixed(1)}%`,
+                status: 'LIVE',
+                coverDiff: Math.round(coverDiff * 10) / 10,
+                currentMargin,
+                totalSecRem
+            };
+        };
+
+        const getWinProbTextColor = (pct) => {
+            if (pct >= 65) return 'text-emerald-400';
+            if (pct >= 45) return 'text-amber-400';
+            return 'text-rose-400';
+        };
+
+        const getWinProbBarColor = (pct) => {
+            if (pct >= 65) return 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-md shadow-emerald-500/30';
+            if (pct >= 45) return 'bg-gradient-to-r from-amber-600 to-amber-400 shadow-md shadow-amber-500/30';
+            return 'bg-gradient-to-r from-rose-600 to-rose-400 shadow-md shadow-rose-500/30';
+        };
 
         // Parse a value into a valid float or null
         const parseNum = (val) => {
@@ -768,16 +1157,17 @@ createApp({
                 finalAction = 'STRONG BET';
                 finalDir = t1.dir;
             } else if (t1.status === 'BET' || t1.status === 'LEAN') {
-                finalAction = t1.status === 'BET' ? 'TIER 1 BET' : 'TIER 1 LEAN';
+                // Tier 1 standalone signals classified as Tier 1 Lean
+                finalAction = 'TIER 1 LEAN';
                 finalDir = t1.dir;
             } else if (t2.status === 'BET' || t2.status === 'LEAN') {
-                finalAction = t2.status === 'BET' ? 'TIER 2 BET' : 'TIER 2 LEAN';
+                finalAction = 'TIER 2 LEAN';
                 finalDir = t2.dir;
             }
 
             if (finalDir !== 'None' && t3.status === 'BET' && t3.dir !== 'None' && t3.dir !== finalDir) {
                 t3Downgrade = true;
-                if (finalAction.includes('STRONG BET') || finalAction.includes('BET')) {
+                if (finalAction === 'STRONG BET') {
                     finalAction = 'LEAN (T3 Downgrade)';
                 } else {
                     finalAction = 'PASS (T3 Downgrade)';
@@ -798,10 +1188,24 @@ createApp({
             };
         };
 
-        // Dynamically detect the header row (row 5 in the sheet) and map all 22 columns
+        // Dynamically detect the header row and map all columns
         const processRawRows = (rows, sourceLabel = 'Live CBB Google Sheet') => {
             if (!rows || rows.length === 0) {
                 throw new Error("Dataset is empty.");
+            }
+
+            // Extract any date from sheet metadata or top rows (e.g. "Last updated: 11/2/2026")
+            sheetDetectedDate.value = null;
+            for (let i = 0; i < Math.min(6, rows.length); i++) {
+                const rowStr = Object.values(rows[i]).join(' ');
+                const matchMDY = rowStr.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+                if (matchMDY) {
+                    const month = matchMDY[1].padStart(2, '0');
+                    const day = matchMDY[2].padStart(2, '0');
+                    const year = matchMDY[3];
+                    sheetDetectedDate.value = `${year}${month}${day}`;
+                    break;
+                }
             }
 
             let headerIdx = -1;
@@ -832,7 +1236,6 @@ createApp({
                     }
                 }
             } else {
-                // Fallback: assume array of objects or direct mapping
                 dataRows = rows.filter(r => r && (r.home || r.Home));
             }
 
@@ -855,10 +1258,13 @@ createApp({
                 return gameObj;
             });
 
-            dataSource.value = sourceLabel === 'Embedded CBB Slate' ? 'fallback' : 'sheet';
+            dataSource.value = 'sheet';
             statusType.value = 'success';
             statusMessage.value = `Successfully loaded ${games.value.length} matchups from ${sourceLabel}.`;
             loading.value = false;
+
+            // Auto-check for live scores from ESPN once games are loaded
+            fetchLiveScores();
         };
 
         const fetchSheetData = async () => {
@@ -867,62 +1273,466 @@ createApp({
             statusMessage.value = 'Syncing CBB Google Sheet...';
 
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`;
+            const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 
-            // Try direct fetch first, then CORS proxy, then fallback slate
-            try {
-                let res = await fetch(gvizUrl).catch(() => null);
-                if (!res || !res.ok) {
-                    // Try CORS proxy fallback for local file downloads
-                    res = await fetch(proxyUrl).catch(() => null);
-                }
-                if (!res || !res.ok) throw new Error('Network fetch failed');
-                
-                const csvText = await res.text();
+            const candidateUrls = [
+                gvizUrl,
+                exportUrl,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(gvizUrl)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(gvizUrl)}`,
+                `https://corsproxy.io/?url=${encodeURIComponent(gvizUrl)}`
+            ];
 
-                Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: (results) => {
-                        if (results && results.data && results.data.length > 0) {
-                            processRawRows(results.data, 'Live CBB Google Sheet');
-                        } else {
-                            throw new Error('Parsed CSV returned empty rows.');
+            let csvText = null;
+            for (const url of candidateUrls) {
+                try {
+                    const res = await fetch(url);
+                    if (res && res.ok) {
+                        const txt = await res.text();
+                        if (txt && (txt.includes('road') || txt.includes('line') || txt.includes('home'))) {
+                            csvText = txt;
+                            break;
                         }
-                    },
-                    error: (err) => {
-                        throw new Error(err.message || 'PapaParse error');
                     }
-                });
-            } catch (err) {
-                console.warn('CBB Sheet sync encountered network restrictions, loading embedded CBB slate:', err);
-                loadFallbackData();
+                } catch (e) {
+                    // Continue to next candidate
+                }
             }
-        };
 
-        const loadFallbackData = () => {
-            loading.value = true;
-            statusType.value = 'warning';
-            statusMessage.value = 'Using embedded CBB Spreads snapshot dataset.';
+            if (!csvText) {
+                loading.value = false;
+                statusType.value = 'error';
+                statusMessage.value = 'Unable to download Google Sheet. Check network permissions and click "Sync Sheet" to retry.';
+                return;
+            }
 
-            Papa.parse(FALLBACK_CBB_CSV, {
+            Papa.parse(csvText, {
                 header: true,
                 skipEmptyLines: true,
                 complete: (results) => {
                     if (results && results.data && results.data.length > 0) {
-                        processRawRows(results.data, 'Embedded CBB Slate');
+                        processRawRows(results.data, 'Live CBB Google Sheet');
                     } else {
                         loading.value = false;
                         statusType.value = 'error';
-                        statusMessage.value = 'Failed to load fallback CBB dataset.';
+                        statusMessage.value = 'Parsed Google Sheet CSV returned empty rows.';
                     }
                 },
-                error: () => {
+                error: (err) => {
                     loading.value = false;
                     statusType.value = 'error';
-                    statusMessage.value = 'Error parsing fallback CBB dataset.';
+                    statusMessage.value = 'CSV parse error: ' + (err.message || 'Unknown error');
                 }
             });
+        };
+
+        // --- Comprehensive Bidirectional College Basketball Canonical Normalizer ---
+        const CANONICAL_MAP = {
+            // UCF / Central Florida
+            'ucf': 'ucf', 'central florida': 'ucf', 'ucf knights': 'ucf', 'central florida knights': 'ucf',
+            // UConn / Connecticut
+            'uconn': 'connecticut', 'connecticut': 'connecticut', 'uconn huskies': 'connecticut', 'connecticut huskies': 'connecticut',
+            // FGCU / Florida Gulf Coast
+            'fgcu': 'fgcu', 'florida gulf coast': 'fgcu', 'fgcu eagles': 'fgcu', 'florida gulf coast eagles': 'fgcu',
+            // UMBC / MD Baltimore Co
+            'umbc': 'umbc', 'md baltimore co': 'umbc', 'maryland baltimore county': 'umbc', 'umbc retrievers': 'umbc',
+            // FAU / Florida Atlantic
+            'fau': 'fau', 'florida atlantic': 'fau', 'fau owls': 'fau', 'florida atlantic owls': 'fau',
+            // FDU / Fairleigh Dickinson
+            'fdu': 'fdu', 'fairleigh dickinson': 'fdu', 'fdu knights': 'fdu', 'fairleigh dickinson knights': 'fdu',
+            // UMKC / Mo Kansas City / Kansas City
+            'kansas city': 'kansas city', 'missouri kansas city': 'kansas city', 'mo kansas city': 'kansas city', 'umkc': 'kansas city', 'kansas city roos': 'kansas city',
+            // Charlotte / NC Charlotte
+            'charlotte': 'charlotte', 'nc charlotte': 'charlotte', 'north carolina charlotte': 'charlotte', 'charlotte 49ers': 'charlotte',
+            // NC State / North Carolina St.
+            'nc state': 'nc state', 'north carolina state': 'nc state', 'north carolina st': 'nc state', 'nc state wolfpack': 'nc state',
+            // NC Central / North Carolina Central
+            'nc central': 'nc central', 'nccu': 'nc central', 'north carolina central': 'nc central', 'nccu eagles': 'nc central',
+            // USC Upstate / South Carolina Upstate
+            'usc upstate': 'usc upstate', 'sc upstate': 'usc upstate', 'south carolina upstate': 'usc upstate', 'usc upstate spartans': 'usc upstate',
+            // Louisiana / Louisiana Lafayette / UL Lafayette
+            'louisiana': 'louisiana', 'louisiana lafayette': 'louisiana', 'ul lafayette': 'louisiana', 'ragin cajuns': 'louisiana', 'louisiana ragin cajuns': 'louisiana',
+            // Louisiana Monroe / ULM / UL Monroe
+            'louisiana monroe': 'ulm', 'ulm': 'ulm', 'ul monroe': 'ulm', 'ulm warhawks': 'ulm', 'ul monroe warhawks': 'ulm',
+            // LIU / LIU Brooklyn / Long Island
+            'liu': 'liu', 'liu brooklyn': 'liu', 'long island': 'liu', 'long island university': 'liu', 'liu sharks': 'liu',
+            // Boston / Boston U / Boston University
+            'boston': 'boston university', 'boston u': 'boston university', 'boston university': 'boston university', 'boston university terriers': 'boston university',
+            // St. Thomas (MN)
+            'st thomas': 'st thomas mn', 'st thomas mn': 'st thomas mn', 'saint thomas': 'st thomas mn', 'saint thomas mn': 'st thomas mn', 'saint thomas minnesota': 'st thomas mn', 'st thomas minnesota': 'st thomas mn', 'st thomas tommies': 'st thomas mn',
+            // Texas A&M Commerce / East Texas A&M
+            'texas and m commerce': 'east texas and m', 'texas a and m commerce': 'east texas and m', 'east texas a and m': 'east texas and m', 'east texas and m': 'east texas and m', 'east texas and m lions': 'east texas and m',
+            // Utah Tech / Dixie State
+            'utah tech': 'utah tech', 'dixie state': 'utah tech', 'utah tech trailblazers': 'utah tech',
+            // Miami FL vs Miami OH
+            'miami florida': 'miami fl', 'miami fl': 'miami fl', 'miami': 'miami fl', 'miami hurricanes': 'miami fl',
+            'miami ohio': 'miami oh', 'miami oh': 'miami oh', 'miami oh redhawks': 'miami oh', 'miami redhawks': 'miami oh',
+            // Ole Miss / Mississippi
+            'ole miss': 'mississippi', 'mississippi': 'mississippi', 'ole miss rebels': 'mississippi',
+            // Pitt / Pittsburgh
+            'pitt': 'pittsburgh', 'pittsburgh': 'pittsburgh', 'pittsburgh panthers': 'pittsburgh',
+            // USF / South Florida
+            'usf': 'south florida', 'south florida': 'south florida', 'south florida bulls': 'south florida',
+            // FIU / Florida International
+            'fiu': 'fiu', 'florida international': 'fiu', 'fiu panthers': 'fiu',
+            // ETSU / East Tennessee State
+            'etsu': 'etsu', 'east tennessee st': 'etsu', 'east tennessee state': 'etsu', 'etsu buccaneers': 'etsu',
+            // FAMU / Florida A&M
+            'famu': 'famu', 'florida a and m': 'famu', 'florida a and m rattlers': 'famu',
+            // Bethune-Cookman
+            'bethune cookman': 'bethune cookman', 'b cu': 'bethune cookman', 'bethune cookman wildcats': 'bethune cookman',
+            // App State
+            'app state': 'appalachian state', 'appalachian st': 'appalachian state', 'appalachian state': 'appalachian state', 'appalachian state mountaineers': 'appalachian state',
+            // Citadel
+            'citadel': 'citadel', 'the citadel': 'citadel', 'the citadel bulldogs': 'citadel',
+            // Penn State vs Penn
+            'penn st': 'penn state', 'penn state': 'penn state', 'penn state nittany lions': 'penn state', 'penn': 'penn', 'pennsylvania': 'penn', 'penn quakers': 'penn',
+            // Ohio State vs Ohio
+            'ohio st': 'ohio state', 'ohio state': 'ohio state', 'ohio state buckeyes': 'ohio state', 'ohio': 'ohio', 'ohio bobcats': 'ohio',
+            // Michigan vs Michigan State
+            'michigan': 'michigan', 'michigan wolverines': 'michigan', 'michigan st': 'michigan state', 'michigan state': 'michigan state', 'michigan state spartans': 'michigan state',
+            // Mississippi vs Mississippi State
+            'mississippi st': 'mississippi state', 'mississippi state': 'mississippi state', 'mississippi state bulldogs': 'mississippi state',
+            // SIUE
+            'siue': 'siue', 'siu edwardsville': 'siue',
+            // Prairie View
+            'prairie view': 'prairie view', 'prairie view a and m': 'prairie view',
+            // UNCW, UNCG, UNCA
+            'uncw': 'unc wilmington', 'unc wilmington': 'unc wilmington', 'north carolina wilmington': 'unc wilmington',
+            'uncg': 'unc greensboro', 'unc greensboro': 'unc greensboro', 'north carolina greensboro': 'unc greensboro',
+            'unca': 'unc asheville', 'unc asheville': 'unc asheville', 'north carolina asheville': 'unc asheville',
+            // Texas schools
+            'utrgv': 'utrgv', 'ut rio grande valley': 'utrgv', 'uta': 'ut arlington', 'ut arlington': 'ut arlington', 'texas arlington': 'ut arlington', 'utsa': 'utsa', 'utep': 'utep',
+            // Short acronyms
+            'smu': 'smu', 'tcu': 'tcu', 'byu': 'byu', 'lsu': 'lsu', 'vcu': 'vcu', 'vmi': 'vmi', 'uic': 'uic', 'uab': 'uab', 'unlv': 'unlv',
+            // Service Academies
+            'army': 'army', 'army black knights': 'army', 'navy': 'navy', 'navy midshipmen': 'navy', 'air force': 'air force', 'air force falcons': 'air force'
+        };
+
+        const cleanRawName = (name) => {
+            if (!name) return '';
+            let s = String(name).toLowerCase().trim();
+            s = s.replace(/&/g, ' and ');
+            s = s.replace(/['’]/g, '').replace(/[-().,]/g, ' ');
+            s = s.replace(/\s+/g, ' ').trim();
+
+            if (s.startsWith('st ') || s.startsWith('saint ')) {
+                s = 'saint ' + s.replace(/^(st|saint)\s+/, '');
+            }
+
+            const words = s.split(' ');
+            for (let i = 1; i < words.length; i++) {
+                if (words[i] === 'st') words[i] = 'state';
+            }
+            return words.join(' ');
+        };
+
+        const canonicalizeTeam = (name) => {
+            const cleaned = cleanRawName(name);
+            if (!cleaned) return '';
+            if (CANONICAL_MAP[cleaned]) return CANONICAL_MAP[cleaned];
+
+            // Remove common sports mascot suffixes to see if root matches canonical dictionary
+            const mascots = ['wildcats', 'tigers', 'bulldogs', 'eagles', 'bears', 'panthers', 'warriors', 'raiders', 'knights', 'rams', 'hawks', 'spartans', 'mountaineers', 'bobcats', 'cougars', 'lumberjacks', 'tar heels', 'blue devils', 'gators', 'buckeyes', 'wolverines', 'red storm', 'seminoles', 'crusaders', 'terriers', 'sharks', 'retrievers', 'owls', 'roos', 'bisons', 'flames', 'cardinals', 'peacocks', 'trailblazers', 'lakers', 'redhawks', 'hurricanes', 'ducks', 'beavers', 'miners', 'roadrunners', 'mustangs', 'horned frogs', 'rebels'];
+            for (const m of mascots) {
+                if (cleaned.endsWith(' ' + m)) {
+                    const withoutMascot = cleaned.slice(0, -(m.length + 1)).trim();
+                    if (CANONICAL_MAP[withoutMascot]) return CANONICAL_MAP[withoutMascot];
+                    return withoutMascot;
+                }
+            }
+            return cleaned;
+        };
+
+        const teamMatches = (sheetTeam, espnCompetitor) => {
+            if (!sheetTeam || !espnCompetitor || !espnCompetitor.team) return false;
+            const sCanon = canonicalizeTeam(sheetTeam);
+
+            const teamObj = espnCompetitor.team;
+            const espnRawList = [
+                teamObj.displayName,
+                teamObj.shortDisplayName,
+                teamObj.location,
+                teamObj.name,
+                teamObj.abbreviation
+            ].filter(Boolean);
+
+            const espnCanons = espnRawList.map(n => canonicalizeTeam(n)).filter(Boolean);
+
+            // 1. Direct Canonical Equality
+            if (espnCanons.some(ec => ec === sCanon)) return true;
+
+            // 2. Explicit disambiguation for Miami FL vs Miami OH
+            if (sCanon === 'miami fl') {
+                const isOhio = espnRawList.some(r => /ohio|\(oh\)|m-oh/i.test(r));
+                if (isOhio) return false;
+                return espnRawList.some(r => /miami|mia/i.test(r));
+            }
+            if (sCanon === 'miami oh') {
+                return espnRawList.some(r => /ohio|\(oh\)|m-oh/i.test(r));
+            }
+
+            // 3. Strict State / Qualifier Disambiguation
+            const strictQualifiers = ['state', 'tech'];
+            for (const ec of espnCanons) {
+                let mismatch = false;
+                for (const q of strictQualifiers) {
+                    const sHas = sCanon.split(' ').includes(q);
+                    const eHas = ec.split(' ').includes(q);
+                    if (sHas !== eHas) {
+                        mismatch = true;
+                        break;
+                    }
+                }
+                if (mismatch) continue;
+
+                // 4. Token Overlap Check
+                const stopWords = new Set(['university', 'college', 'and', 'the', 'of', 'at']);
+                const sTokens = sCanon.split(' ').filter(w => w.length >= 3 && !stopWords.has(w));
+                const eTokens = ec.split(' ').filter(w => w.length >= 3 && !stopWords.has(w));
+
+                if (sTokens.length > 0 && eTokens.length > 0) {
+                    if (sTokens.every(t => eTokens.includes(t))) return true;
+                    if (eTokens.length >= 2 && eTokens.every(t => sTokens.includes(t))) return true;
+                }
+            }
+
+            return false;
+        };
+
+        // Live Score Auto-Fetch Engine from ESPN CBB Scoreboard API
+        const fetchLiveScores = async () => {
+            if (!games.value || games.value.length === 0) return;
+            isPullingScores.value = true;
+
+            const formatYMD = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}${month}${day}`;
+            };
+
+            const now = new Date();
+            const datesToQuery = new Set();
+
+            // Query live active board + past 7 days to cover full current slate
+            datesToQuery.add('live_now');
+            datesToQuery.add(formatYMD(now));
+
+            for (let i = 1; i <= 7; i++) {
+                const pastDate = new Date(now);
+                pastDate.setDate(pastDate.getDate() - i);
+                datesToQuery.add(formatYMD(pastDate));
+            }
+
+            // Include tomorrow for scheduled upcoming games
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            datesToQuery.add(formatYMD(tomorrow));
+
+            // Include spreadsheet detected date if present
+            if (sheetDetectedDate.value) {
+                datesToQuery.add(sheetDetectedDate.value);
+            }
+
+            let requestUrls = [];
+            datesToQuery.forEach(dStr => {
+                if (dStr === 'live_now') {
+                    requestUrls.push(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=50&limit=500`);
+                } else {
+                    requestUrls.push(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=50&limit=500&dates=${dStr}`);
+                }
+            });
+
+            const eventsMap = new Map();
+            for (const url of requestUrls) {
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                try {
+                    let res = await fetch(url).catch(() => null);
+                    if (!res || !res.ok) {
+                        res = await fetch(proxyUrl).catch(() => null);
+                    }
+                    if (res && res.ok) {
+                        const json = await res.json();
+                        if (json && json.events && Array.isArray(json.events)) {
+                            json.events.forEach(ev => {
+                                if (ev && ev.id) {
+                                    if (!eventsMap.has(ev.id)) {
+                                        eventsMap.set(ev.id, ev);
+                                    } else {
+                                        // Prefer completed or in-progress status over pre-game placeholder
+                                        const existing = eventsMap.get(ev.id);
+                                        const existingState = existing.status?.type?.state;
+                                        const newState = ev.status?.type?.state;
+                                        if (newState === 'post' || (newState === 'in' && existingState === 'pre')) {
+                                            eventsMap.set(ev.id, ev);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`ESPN fetch error for ${url}:`, e);
+                }
+            }
+
+            const allEvents = Array.from(eventsMap.values());
+            if (allEvents.length === 0) {
+                isPullingScores.value = false;
+                statusType.value = 'warning';
+                statusMessage.value = 'Could not retrieve live games from ESPN API at this moment.';
+                return;
+            }
+
+            let autoGradedCount = 0;
+            let liveInProgressCount = 0;
+
+            const parseCompScore = (comp) => {
+                if (!comp || comp.score === undefined || comp.score === null || comp.score === '') return null;
+                const s = parseInt(comp.score, 10);
+                return isNaN(s) ? null : s;
+            };
+
+            // Match each game in our sheet against ESPN events
+            games.value.forEach(g => {
+                let matchedHomeComp = null;
+                let matchedRoadComp = null;
+                let matchedEvent = null;
+
+                for (const ev of allEvents) {
+                    const comps = ev.competitions?.[0]?.competitors;
+                    if (!comps || comps.length < 2) continue;
+                    const homeComp = comps.find(c => c.homeAway === 'home') || comps[0];
+                    const awayComp = comps.find(c => c.homeAway === 'away') || comps[1];
+
+                    // Standard orientation
+                    if (teamMatches(g.home, homeComp) && teamMatches(g.road, awayComp)) {
+                        matchedHomeComp = homeComp;
+                        matchedRoadComp = awayComp;
+                        matchedEvent = ev;
+                        break;
+                    }
+                    // Neutral / inverted orientation
+                    if (teamMatches(g.home, awayComp) && teamMatches(g.road, homeComp)) {
+                        matchedHomeComp = awayComp;
+                        matchedRoadComp = homeComp;
+                        matchedEvent = ev;
+                        break;
+                    }
+                }
+
+                if (matchedEvent && matchedHomeComp && matchedRoadComp) {
+                    const statusType = matchedEvent.status?.type || matchedEvent.competitions?.[0]?.status?.type || {};
+                    const state = String(statusType.state || matchedEvent.status?.state || '').toLowerCase();
+                    const statusName = String(statusType.name || '').toUpperCase();
+                    const statusDetail = String(statusType.detail || statusType.description || '');
+                    const statusDetailLower = statusDetail.toLowerCase();
+                    const completedFlag = statusType.completed === true || matchedEvent.status?.completed === true;
+
+                    // Strict completed evaluation
+                    const isCompleted = completedFlag || 
+                                        state === 'post' || 
+                                        statusName.includes('FINAL') || 
+                                        statusDetailLower.startsWith('final') ||
+                                        statusDetailLower === 'final' ||
+                                        statusDetailLower.includes('final/ot');
+
+                    const isLive = !isCompleted && (
+                        state === 'in' || 
+                        statusName.includes('IN_PROGRESS') ||
+                        statusName.includes('HALFTIME') ||
+                        statusDetailLower.includes('half') || 
+                        statusDetailLower.includes('1st') || 
+                        statusDetailLower.includes('2nd') || 
+                        statusDetailLower.includes('ot')
+                    );
+
+                    const clock = matchedEvent.status?.clock;
+                    const displayClock = matchedEvent.status?.displayClock || '';
+                    const period = matchedEvent.status?.period || 1;
+                    const startTime = matchedEvent.date ? new Date(matchedEvent.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null;
+
+                    const awayScore = parseCompScore(matchedRoadComp);
+                    const homeScore = parseCompScore(matchedHomeComp);
+
+                    const key = getGameKey(g);
+
+                    if (awayScore !== null && homeScore !== null) {
+                        liveGameStatusMap.value[key] = {
+                            awayScore,
+                            homeScore,
+                            detail: isCompleted ? 'Final' : (statusDetail || (isLive ? 'In Progress' : 'Scheduled')),
+                            displayClock: isCompleted ? '0:00' : displayClock,
+                            clock: isCompleted ? 0 : clock,
+                            period,
+                            startTime,
+                            isLive,
+                            isCompleted
+                        };
+                    } else if (startTime) {
+                        liveGameStatusMap.value[key] = {
+                            awayScore: null,
+                            homeScore: null,
+                            detail: isCompleted ? 'Final' : (statusDetail || 'Scheduled'),
+                            startTime,
+                            isLive: false,
+                            isCompleted
+                        };
+                    }
+
+                    if (isLive) {
+                        liveInProgressCount++;
+                    }
+
+                    // Auto-grade completed final games (Strong Bets keep the record)
+                    if (isCompleted && awayScore !== null && homeScore !== null) {
+                        if (g.result && g.result.finalAction === 'STRONG BET') {
+                            const current = grades.value[key] || { grade: null, awayScore: null, homeScore: null };
+                            current.awayScore = awayScore;
+                            current.homeScore = homeScore;
+                            current.auto = true;
+                            computeScoreGrade(g, current);
+                            grades.value[key] = { ...current };
+                            autoGradedCount++;
+                        }
+                    }
+                }
+            });
+
+            saveGradesToStorage();
+            isPullingScores.value = false;
+            lastScoreSyncTime.value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            statusType.value = 'success';
+            statusMessage.value = `ESPN Live Sync: ${liveInProgressCount} live in-progress, ${autoGradedCount} Strong Bets recorded.`;
+        };
+
+        const liveGamesCount = computed(() => {
+            if (!liveGameStatusMap.value) return 0;
+            return Object.values(liveGameStatusMap.value).filter(s => s && s.isLive).length;
+        });
+
+        const toggleAutoRefresh = () => {
+            autoRefresh.value = !autoRefresh.value;
+            if (autoRefresh.value) {
+                startAutoRefresh();
+            } else if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+            }
+        };
+
+        const startAutoRefresh = () => {
+            if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+            autoRefreshTimer = setInterval(() => {
+                if (autoRefresh.value) {
+                    fetchLiveScores();
+                }
+            }, 30000);
+        };
+
+        const getGameLiveStatus = (game) => {
+            return liveGameStatusMap.value[getGameKey(game)] || null;
         };
 
         // Filtered matchups computed property
@@ -938,7 +1748,12 @@ createApp({
                 );
             }
 
-            if (quickFilter.value === 'actionable') {
+            if (quickFilter.value === 'live') {
+                list = list.filter(g => {
+                    const st = getGameLiveStatus(g);
+                    return st && st.isLive;
+                });
+            } else if (quickFilter.value === 'actionable') {
                 list = list.filter(g => g.result && g.result.finalAction !== 'PASS' && g.result.finalAction !== 'OFF');
             } else if (quickFilter.value === 'strong') {
                 list = list.filter(g => g.result && g.result.finalAction === 'STRONG BET');
@@ -969,12 +1784,12 @@ createApp({
 
         const tier1PlaysCount = computed(() => {
             if (!analyzedGames.value) return 0;
-            return analyzedGames.value.filter(g => g.result.finalAction.includes('TIER 1')).length;
+            return analyzedGames.value.filter(g => g.result.finalAction === 'TIER 1 LEAN').length;
         });
 
         const tier2PlaysCount = computed(() => {
             if (!analyzedGames.value) return 0;
-            return analyzedGames.value.filter(g => g.result.finalAction.includes('TIER 2')).length;
+            return analyzedGames.value.filter(g => g.result.finalAction === 'TIER 2 LEAN').length;
         });
 
         const summaryList = computed(() => {
@@ -1015,6 +1830,127 @@ createApp({
                 document.body.removeChild(textArea);
             }
         };
+
+        // --- Win / Loss / Push Tracking Engine ---
+        const getGameKey = (game) => {
+            return `${game.road}__${game.home}`;
+        };
+
+        const getGameGrade = (game) => {
+            const key = getGameKey(game);
+            return grades.value[key] || { grade: null, awayScore: null, homeScore: null };
+        };
+
+        const getDisplayScore = (game) => {
+            const live = getGameLiveStatus(game);
+            const grade = getGameGrade(game);
+            
+            let away = '—';
+            if (live && live.awayScore !== null && live.awayScore !== undefined) {
+                away = live.awayScore;
+            } else if (grade && grade.awayScore !== null && grade.awayScore !== undefined) {
+                away = grade.awayScore;
+            }
+
+            let home = '—';
+            if (live && live.homeScore !== null && live.homeScore !== undefined) {
+                home = live.homeScore;
+            } else if (grade && grade.homeScore !== null && grade.homeScore !== undefined) {
+                home = grade.homeScore;
+            }
+
+            return { away, home };
+        };
+
+        const saveGradesToStorage = () => {
+            try {
+                localStorage.setItem('cbb_quant_grades', JSON.stringify(grades.value));
+            } catch (e) {
+                console.warn('Could not save to localStorage', e);
+            }
+        };
+
+        const computeScoreGrade = (game, entry) => {
+            if (entry.awayScore === null || entry.homeScore === null || game.liveLine === null) return;
+            const actualHomeMargin = entry.homeScore - entry.awayScore;
+            const line = game.liveLine;
+
+            if (game.result.finalDir === 'Home') {
+                if (actualHomeMargin > line) {
+                    entry.grade = 'W';
+                } else if (actualHomeMargin < line) {
+                    entry.grade = 'L';
+                } else {
+                    entry.grade = 'P';
+                }
+            } else if (game.result.finalDir === 'Away') {
+                if (actualHomeMargin < line) {
+                    entry.grade = 'W';
+                } else if (actualHomeMargin > line) {
+                    entry.grade = 'L';
+                } else {
+                    entry.grade = 'P';
+                }
+            }
+        };
+
+        const clearGameGrade = (game) => {
+            const key = getGameKey(game);
+            delete grades.value[key];
+            grades.value = { ...grades.value };
+            saveGradesToStorage();
+        };
+
+        const clearAllGrades = () => {
+            grades.value = {};
+            saveGradesToStorage();
+        };
+
+        // Record Calculation Helper: Strong Bets only
+        const calcRecord = (filterFn) => {
+            if (!games.value || games.value.length === 0) {
+                return { w: 0, l: 0, p: 0, total: 0, winPct: '0.0' };
+            }
+
+            let w = 0, l = 0, p = 0;
+            games.value.forEach(g => {
+                // Win-Lost-Push record strictly tracks Strong Bets
+                if (!g.result || g.result.finalAction !== 'STRONG BET') return;
+                if (filterFn && !filterFn(g)) return;
+
+                const key = getGameKey(g);
+                const item = grades.value[key];
+                if (item && item.grade) {
+                    if (item.grade === 'W') w++;
+                    else if (item.grade === 'L') l++;
+                    else if (item.grade === 'P') p++;
+                }
+            });
+
+            const decided = w + l;
+            const winPct = decided > 0 ? ((w / decided) * 100).toFixed(1) : '0.0';
+
+            return {
+                w,
+                l,
+                p,
+                total: w + l + p,
+                winPct
+            };
+        };
+
+        const strongRecord = computed(() => calcRecord(() => true));
+
+        const filteredGradedGames = computed(() => {
+            if (!games.value) return [];
+            return games.value.filter(g => {
+                if (!g.result || g.result.finalAction !== 'STRONG BET') return false;
+                const item = grades.value[getGameKey(g)];
+                if (!item || !item.grade) return false;
+                if (recordFilter.value !== 'all' && item.grade !== recordFilter.value) return false;
+                return true;
+            });
+        });
 
         // Styling helpers
         const getResultBoxClasses = (res) => {
@@ -1060,21 +1996,44 @@ createApp({
         };
 
         onMounted(() => {
+            try {
+                const saved = localStorage.getItem('cbb_quant_grades');
+                if (saved) {
+                    grades.value = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.warn('Could not read from localStorage', e);
+            }
             fetchSheetData();
+            startAutoRefresh();
+        });
+
+        onUnmounted(() => {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+            }
         });
 
         return {
             sheetUrl,
             games,
             loading,
+            isPullingScores,
+            autoRefresh,
+            toggleAutoRefresh,
+            liveGamesCount,
+            lastScoreSyncTime,
             activeTab,
             searchQuery,
             quickFilter,
+            recordFilter,
+            recordFilterOptions,
             showOnlyActionable,
             statusMessage,
             statusType,
             dataSource,
             copyButtonText,
+            grades,
             modelTiers,
             filterOptions,
             filteredGames,
@@ -1084,6 +2043,8 @@ createApp({
             tier1PlaysCount,
             tier2PlaysCount,
             summaryList,
+            strongRecord,
+            filteredGradedGames,
             getModelVal,
             formatMetric,
             formatModelLabel,
@@ -1091,8 +2052,17 @@ createApp({
             formatBetSpread,
             analyzeGame,
             fetchSheetData,
-            loadFallbackData,
+            fetchLiveScores,
+            getGameLiveStatus,
+            calculateLiveCoverProb,
+            getWinProbTextColor,
+            getWinProbBarColor,
             copySummaryToClipboard,
+            getGameKey,
+            getGameGrade,
+            getDisplayScore,
+            clearGameGrade,
+            clearAllGrades,
             getResultBoxClasses,
             getSummaryBadgeClasses,
             getTierBadgeClass,
